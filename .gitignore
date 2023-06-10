@@ -1,0 +1,4 @@
+neophoebe/target/
+docs/*
+!docs/*.pdf
+.vscode
