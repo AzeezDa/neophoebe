@@ -10,11 +10,8 @@ pub struct Parameters {
     pub hygenicity: f64,
     pub disease_spread: f64,
     pub disease_incubation: f64,
-    pub personal_incubation_factor: f64,
     pub disease_recovery: f64,
-    pub personal_disease_recovery_factor: f64,
     pub disease_mortality: f64,
-    pub personal_disease_mortality_factor: f64
 }
 
 impl Parameters {

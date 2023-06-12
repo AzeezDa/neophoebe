@@ -2,3 +2,4 @@ neophoebe/target/
 docs/*
 !docs/*.pdf
 .vscode
+grapher/.venv/

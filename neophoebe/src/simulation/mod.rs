@@ -25,7 +25,7 @@ impl Simulation {
             population: Population::new(&params),
             relations: Relations::new(&params),
             parameters: params,
-            log: String::new()
+            log: format!("t,s,e,c,r,d\n")
         }
     }
 
