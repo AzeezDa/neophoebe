@@ -10,6 +10,9 @@ pub use population::*;
 mod lower_matrix;
 pub use lower_matrix::*;
 
+mod restriction;
+pub use restriction::*;
+
 pub struct Simulation {
     population: Population,
     relations: Relations,

@@ -1,6 +1,8 @@
 use serde::{Serialize, Deserialize};
 use std::fs;
 
+use super::Restriction;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Parameters {
     pub population_size: usize,
@@ -12,6 +14,8 @@ pub struct Parameters {
     pub disease_incubation: f64,
     pub disease_recovery: f64,
     pub disease_mortality: f64,
+    pub tests_per_day: usize,
+    pub restriction_plan: Restriction
 }
 
 impl Parameters {

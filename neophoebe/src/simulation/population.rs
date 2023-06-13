@@ -1,12 +1,12 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
-use rand::{Rng, prelude::Distribution};
+use rand::{prelude::Distribution, Rng};
 
-use super::{Parameters, Relations};
+use super::{Parameters, Relations, Restriction};
 
 fn rand_exp(lambda: f64) -> f64 {
     let r = rand::random::<f64>();
-    -(1.-r).ln()/lambda
+    -(1. - r).ln() / lambda
 }
 
 pub struct Population {
@@ -16,17 +16,24 @@ pub struct Population {
     recovered: HashSet<usize>,
     deceased: HashSet<usize>,
     exposed_timers: HashMap<usize, f64>,
-    contagious_timers: HashMap<usize, (f64, f64)>
+    contagious_timers: HashMap<usize, (f64, f64)>,
+    active_restriction: Restriction,
+    positive_tested: HashSet<usize>,
 }
 
 impl Population {
     pub fn new(params: &Parameters) -> Self {
-        let mut susceptible  = HashSet::from_iter(0..params.population_size);
+        let mut susceptible = HashSet::from_iter(0..params.population_size);
 
         let patient_zero = (&mut rand::thread_rng()).gen_range(0..params.population_size);
         susceptible.remove(&patient_zero);
         let mut contagious = HashSet::new();
         contagious.insert(patient_zero);
+
+        let restriction = match params.restriction_plan {
+            Restriction::PersonalRestriction(_) => params.restriction_plan,
+            _ => Restriction::NoRestriction,
+        };
 
         Self {
             susceptible,
@@ -35,26 +42,51 @@ impl Population {
             recovered: HashSet::new(),
             deceased: HashSet::new(),
             exposed_timers: HashMap::new(),
-            contagious_timers: HashMap::new()
+            contagious_timers: HashMap::new(),
+            active_restriction: restriction,
+            positive_tested: HashSet::new(),
         }
     }
 
     pub fn update(&mut self, params: &Parameters, relations: &Relations) {
+        let spread_constant = (1. - params.hygenicity).powi(2) * params.disease_spread;
+        let mut rng = rand::thread_rng();
         let mut to_remove = vec![];
 
         for &i in self.susceptible.iter() {
             let mut p = 1.;
             for &j in self.contagious.iter() {
-                p *= 1. - relations.get(i, j) * (1. - params.hygenicity).powi(2) * params.disease_spread;
+                let mut relation = relations.get(i, j);
+
+                match self.active_restriction {
+                    Restriction::CommunityRestriction(_, p, _) => {
+                        if relation < p {
+                            relation = 0.;
+                        }
+                    }
+                    Restriction::PersonalRestriction(p) => relation *= p,
+                    Restriction::CutOffRestriction(_, p, _) => {
+                        if self.positive_tested.contains(&j) {
+                            relation *= p;
+                        }
+                    }
+                    _ => {}
+                }
+
+                p *= 1. - relation * spread_constant
             }
-            if rand::distributions::Bernoulli::new(1. - p).unwrap().sample(&mut rand::thread_rng()) {
+            if rand::distributions::Bernoulli::new(1. - p)
+                .unwrap()
+                .sample(&mut rng)
+            {
                 to_remove.push(i);
             }
         }
         for &i in to_remove.iter() {
             self.susceptible.remove(&i);
             self.exposed.insert(i);
-            self.exposed_timers.insert(i, rand_exp(params.disease_incubation));
+            self.exposed_timers
+                .insert(i, rand_exp(params.disease_incubation));
         }
 
         to_remove.clear();
@@ -69,7 +101,13 @@ impl Population {
             self.exposed.remove(i);
             self.exposed_timers.remove(i);
             self.contagious.insert(*i);
-            self.contagious_timers.insert(*i, (rand_exp(params.disease_recovery), rand_exp(params.disease_mortality)));
+            self.contagious_timers.insert(
+                *i,
+                (
+                    rand_exp(params.disease_recovery),
+                    rand_exp(params.disease_mortality),
+                ),
+            );
         }
 
         to_remove.clear();
@@ -89,9 +127,52 @@ impl Population {
             self.contagious.remove(i);
             self.contagious_timers.remove(i);
         }
+
+        match params.restriction_plan {
+            Restriction::NoRestriction => {}
+            Restriction::CommunityRestriction(limit, _, _)
+            | Restriction::CutOffRestriction(limit, _, _) => {
+                let mut positives = 0;
+                for _ in 0..params.tests_per_day {
+                    let tested = rng.gen_range(0..params.population_size);
+                    if self.contagious.contains(&tested) || self.exposed.contains(&tested) {
+                        positives += 1;
+                    }
+                }
+                if positives >= limit {
+                    self.active_restriction = params.restriction_plan;
+                }
+            }
+            Restriction::PersonalRestriction(_) => {
+                for _ in 0..params.tests_per_day {
+                    let tested = rng.gen_range(0..params.population_size);
+                    if self.contagious.contains(&tested) || self.exposed.contains(&tested) {
+                        self.positive_tested.insert(tested);
+                    }
+                }
+            }
+        }
+
+        match &mut self.active_restriction {
+            Restriction::CommunityRestriction(_, _, time)
+            | Restriction::CutOffRestriction(_, _, time) => {
+                *time -= 1;
+                if *time <= 0 {
+                    self.active_restriction = Restriction::NoRestriction;
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn get_sizes(&self) -> String {
-        format!("{},{},{},{},{}\n", self.susceptible.len(), self.exposed.len(), self.contagious.len(), self.recovered.len(), self.deceased.len())
+        format!(
+            "{},{},{},{},{}\n",
+            self.susceptible.len(),
+            self.exposed.len(),
+            self.contagious.len(),
+            self.recovered.len(),
+            self.deceased.len()
+        )
     }
 }
