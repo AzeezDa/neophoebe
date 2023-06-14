@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use rand::{self, Rng};
 
 use super::{LowerMatrix, Parameters};
 
@@ -25,9 +24,9 @@ impl Relations {
         let mut rng = rand::thread_rng();
         for &(num_applications, relation_size, relation_strength) in params.extra_relations.iter() {
             for _ in 0..num_applications {
-                let group: Vec<usize> = (0..relation_size)
-                    .map(|_| rng.gen_range(0..params.population_size))
-                    .collect();
+                let group =
+                    rand::seq::index::sample(&mut rng, params.population_size, relation_size)
+                        .into_vec();
                 for (&p, &q) in group.iter().tuple_combinations() {
                     let v = matrix[(p, q)];
                     matrix[(p, q)] = (v + relation_strength).clamp(0., 1.);

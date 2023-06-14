@@ -29,6 +29,14 @@ impl Population {
         susceptible.remove(&patient_zero);
         let mut contagious = HashSet::new();
         contagious.insert(patient_zero);
+        let mut contagious_timers = HashMap::new();
+        contagious_timers.insert(
+            patient_zero,
+            (
+                rand_exp(params.disease_recovery),
+                rand_exp(params.disease_mortality),
+            ),
+        );
 
         let restriction = match params.restriction_plan {
             Restriction::PersonalRestriction(_) => params.restriction_plan,
@@ -42,7 +50,7 @@ impl Population {
             recovered: HashSet::new(),
             deceased: HashSet::new(),
             exposed_timers: HashMap::new(),
-            contagious_timers: HashMap::new(),
+            contagious_timers,
             active_restriction: restriction,
             positive_tested: HashSet::new(),
         }
@@ -64,8 +72,7 @@ impl Population {
                             relation = 0.;
                         }
                     }
-                    Restriction::PersonalRestriction(p) => relation *= p,
-                    Restriction::CutOffRestriction(_, p, _) => {
+                    Restriction::CutOffRestriction(_, p, _) | Restriction::PersonalRestriction(p) => {
                         if self.positive_tested.contains(&j) {
                             relation *= p;
                         }
@@ -115,10 +122,10 @@ impl Population {
         for (&p, (recovery, mortality)) in self.contagious_timers.iter_mut() {
             *recovery -= 1.;
             *mortality -= 1.;
-            if *recovery <= 0. && *recovery <= *mortality {
+            if *recovery <= 0. {
                 self.recovered.insert(p);
                 to_remove.push(p);
-            } else if *mortality <= 0. && *recovery > *mortality {
+            } else if *mortality <= 0. {
                 self.deceased.insert(p);
                 to_remove.push(p);
             }
@@ -133,9 +140,9 @@ impl Population {
             Restriction::CommunityRestriction(limit, _, _)
             | Restriction::CutOffRestriction(limit, _, _) => {
                 let mut positives = 0;
-                for _ in 0..params.tests_per_day {
-                    let tested = rng.gen_range(0..params.population_size);
-                    if self.contagious.contains(&tested) || self.exposed.contains(&tested) {
+                let group = rand::seq::index::sample(&mut rng, params.population_size, params.tests_per_day).into_vec();
+                for i in group {
+                    if self.contagious.contains(&i) || self.exposed.contains(&i) {
                         positives += 1;
                     }
                 }
@@ -144,10 +151,10 @@ impl Population {
                 }
             }
             Restriction::PersonalRestriction(_) => {
-                for _ in 0..params.tests_per_day {
-                    let tested = rng.gen_range(0..params.population_size);
-                    if self.contagious.contains(&tested) || self.exposed.contains(&tested) {
-                        self.positive_tested.insert(tested);
+                let group = rand::seq::index::sample(&mut rng, params.population_size, params.tests_per_day).into_vec();
+                for i in group {
+                    if self.contagious.contains(&i) || self.exposed.contains(&i) {
+                        self.positive_tested.insert(i);
                     }
                 }
             }
