@@ -1,5 +1,5 @@
-neophoebe/target/
+target/
+.vscode/
+.venv/
 docs/*
 !docs/*.pdf
-.vscode
-grapher/.venv/

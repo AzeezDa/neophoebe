@@ -1,8 +1,16 @@
+import subprocess
+import os
 import pandas as pd
 from matplotlib import pyplot as plt
 from sys import argv
 
-df = pd.read_csv(argv[1])
+dirname = os.path.dirname(__file__)
+cwd = os.getcwd()
+os.chdir(os.path.join(dirname, "./neophoebe"))
+s = subprocess.Popen(["cargo", "run", "-q", "--release", os.path.join(cwd, argv[1])] + argv[2:], shell=True, stdout=subprocess.PIPE).stdout
+
+df = pd.read_csv(s)
+s.close()
 fig, axs = plt.subplots(2, 2, figsize=(12, 7))
 
 axs[0, 0].plot(df.t, df.s, color="Lime")
