@@ -1,14 +1,16 @@
 use itertools::Itertools;
 
-use super::{LowerMatrix, Parameters};
+use super::{SymmetricMatrix, Parameters};
 
+/// A struct that is responsible for storing the relations between persons in the population
 pub struct Relations {
-    matrix: LowerMatrix<f64>,
+    matrix: SymmetricMatrix<f64>,
 }
 
 impl Relations {
+    /// Given the parameters set up the relationships in the population
     pub fn new(params: &Parameters) -> Self {
-        let mut matrix = LowerMatrix::new(params.population_size, 0.);
+        let mut matrix = SymmetricMatrix::new(params.population_size, 0.);
 
         // Household
         let mut i = 0;
@@ -20,9 +22,9 @@ impl Relations {
             i += params.household_size;
         }
 
-        // Extra relations
+        // Other random relations
         let mut rng = rand::thread_rng();
-        for &(num_applications, relation_size, relation_strength) in params.extra_relations.iter() {
+        for &(relation_size, relation_strength, num_applications) in params.extra_relations.iter() {
             for _ in 0..num_applications {
                 let group =
                     rand::seq::index::sample(&mut rng, params.population_size, relation_size)
@@ -37,6 +39,7 @@ impl Relations {
         Self { matrix }
     }
 
+    /// Get the relation between person p1 and p2
     #[inline]
     pub fn get(&self, p1: usize, p2: usize) -> f64 {
         self.matrix[(p1, p2)]

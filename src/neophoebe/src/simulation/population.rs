@@ -4,11 +4,16 @@ use rand::{prelude::Distribution, Rng};
 
 use super::{Parameters, Relations, Restriction};
 
+/// Generate a random exponentially distributed value given the parameter lambda
+///
+/// Note this uses this form the exponential form: 1/λ * e^{-x/λ} because we are inputting the expected value for the variables that are
+/// exponentially distributed, so we save a step and just inverse the parameter.
 fn rand_exp(lambda: f64) -> f64 {
     let r = rand::random::<f64>();
-    -(1. - r).ln() / lambda
+    -(1. - r).ln() * lambda
 }
 
+/// A struct that contains the compartmentation of the population and important fields e.g. how long a person has been contagious, or positively tested persons.
 pub struct Population {
     susceptible: HashSet<usize>,
     exposed: HashSet<usize>,
@@ -22,9 +27,12 @@ pub struct Population {
 }
 
 impl Population {
+    /// Given the `Parameters` struct construct a new population
     pub fn new(params: &Parameters) -> Self {
+        // All persons are first susceptible
         let mut susceptible = HashSet::from_iter(0..params.population_size);
 
+        // Infect patient zero
         let patient_zero = (&mut rand::thread_rng()).gen_range(0..params.population_size);
         susceptible.remove(&patient_zero);
         let mut contagious = HashSet::new();
@@ -38,6 +46,7 @@ impl Population {
             ),
         );
 
+        // Since personal restriction is always on we set it up immediately, otherwise we set no restriction
         let restriction = match params.restriction_plan {
             Restriction::PersonalRestriction(_) => params.restriction_plan,
             _ => Restriction::NoRestriction,
@@ -56,11 +65,13 @@ impl Population {
         }
     }
 
+    /// Iterate the simulation once given the parameters and the relationship matrix
     pub fn update(&mut self, params: &Parameters, relations: &Relations) {
-        let spread_constant = (1. - params.hygenicity).powi(2) * params.disease_spread;
+        let spread_constant = (1. - params.hygiencity).powi(2) * params.disease_spread;
         let mut rng = rand::thread_rng();
         let mut to_remove = vec![];
 
+        // SUSCEPTIBLE -> EXPOSED
         for &i in self.susceptible.iter() {
             let mut p = 1.;
             for &j in self.contagious.iter() {
@@ -104,6 +115,7 @@ impl Population {
                 .insert(i, rand_exp(params.disease_incubation));
         }
 
+        // EXPOSED -> CONTAGIOUS
         to_remove.clear();
 
         for (&p, incubation) in self.exposed_timers.iter_mut() {
@@ -125,6 +137,7 @@ impl Population {
             );
         }
 
+        // CONTAGIOUS -> RECOVERED | DECEASED
         to_remove.clear();
 
         for (&p, (recovery, mortality)) in self.contagious_timers.iter_mut() {
@@ -143,6 +156,7 @@ impl Population {
             self.contagious_timers.remove(i);
         }
 
+        // APPLY TESTING/SCREENING PLAN
         match params.restriction_plan {
             Restriction::NoRestriction => {}
             Restriction::CommunityRestriction(limit, _, _)
@@ -169,6 +183,7 @@ impl Population {
             }
         }
 
+        // UPDATE RESTRICTION TIMERS
         match &mut self.active_restriction {
             Restriction::CommunityRestriction(_, _, time)
             | Restriction::LowerCutOffRestriction(_, _, time)
@@ -182,6 +197,7 @@ impl Population {
         }
     }
 
+    /// Get the current sizes of each compartmentation
     pub fn get_sizes(&self) -> String {
         format!(
             "{},{},{},{},{}\n",

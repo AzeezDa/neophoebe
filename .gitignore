@@ -3,3 +3,4 @@ target/
 .venv/
 docs/*
 !docs/*.pdf
+!docs/*.tex

@@ -13,6 +13,7 @@ pub use lower_matrix::*;
 mod restriction;
 pub use restriction::*;
 
+/// Struct that encapsulates the entire simulation
 pub struct Simulation {
     population: Population,
     relations: Relations,
@@ -21,6 +22,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
+    /// Set up the simulator using the given a filepath to the simulator's parameters RON file
     pub fn new(file: String) -> Self {
         let params = Parameters::read(file).unwrap();
         
@@ -32,6 +34,7 @@ impl Simulation {
         }
     }
 
+    /// Run the simulator for given amount of days
     pub fn run(&mut self, days: usize) -> &Self {
         for i in 1..=days {
             self.population.update(&self.parameters, &self.relations);
@@ -40,6 +43,7 @@ impl Simulation {
         return self
     }
 
+    // Return a copy of the internally kept log
     pub fn report(&self) -> String {
         self.log.clone()
     }
