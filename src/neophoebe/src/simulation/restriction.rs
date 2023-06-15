@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum Restriction {
     NoRestriction,
     CommunityRestriction(usize, f64, usize),
+    LowerCutOffRestriction(usize, f64, usize),
+    UpperCutOffRestriction(usize, f64, usize),
     PersonalRestriction(f64),
-    CutOffRestriction(usize, f64, usize)
 }

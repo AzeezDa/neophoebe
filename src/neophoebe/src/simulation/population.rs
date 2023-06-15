@@ -67,15 +67,23 @@ impl Population {
                 let mut relation = relations.get(i, j);
 
                 match self.active_restriction {
-                    Restriction::CommunityRestriction(_, p, _) => {
+                    Restriction::LowerCutOffRestriction(_, p, _) => {
                         if relation < p {
                             relation = 0.;
                         }
                     }
-                    Restriction::CutOffRestriction(_, p, _) | Restriction::PersonalRestriction(p) => {
+                    Restriction::UpperCutOffRestriction(_, p, _) => {
+                        if relation > p {
+                            relation = 0.;
+                        }
+                    }
+                    Restriction::PersonalRestriction(p) => {
                         if self.positive_tested.contains(&j) {
                             relation *= p;
                         }
+                    }
+                    Restriction::CommunityRestriction(_, p, _) => {
+                        relation *= p;
                     }
                     _ => {}
                 }
@@ -138,7 +146,8 @@ impl Population {
         match params.restriction_plan {
             Restriction::NoRestriction => {}
             Restriction::CommunityRestriction(limit, _, _)
-            | Restriction::CutOffRestriction(limit, _, _) => {
+            | Restriction::LowerCutOffRestriction(limit, _, _)
+            | Restriction::UpperCutOffRestriction(limit, _, _) => {
                 let mut positives = 0;
                 let group = rand::seq::index::sample(&mut rng, params.population_size, params.tests_per_day).into_vec();
                 for i in group {
@@ -162,7 +171,8 @@ impl Population {
 
         match &mut self.active_restriction {
             Restriction::CommunityRestriction(_, _, time)
-            | Restriction::CutOffRestriction(_, _, time) => {
+            | Restriction::LowerCutOffRestriction(_, _, time)
+            | Restriction::UpperCutOffRestriction(_, _, time) => {
                 *time -= 1;
                 if *time <= 0 {
                     self.active_restriction = Restriction::NoRestriction;

@@ -4,7 +4,7 @@
     household_relation: 0.6,
     extra_relations: [(500, 10, 0.01), (3000, 2, 0.1), (50, 100, 0.03), (2, 300, 0.1)],
     hygenicity: 0.7,
-    disease_spread: 0.08,
+    disease_spread: 0.05,
     disease_incubation: 0.2,
     disease_recovery: 0.07,
     disease_mortality: 0.01,
