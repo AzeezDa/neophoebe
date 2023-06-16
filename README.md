@@ -1,15 +1,21 @@
 # `NEOPHOEBE` - A Disease Simulator
 Namesake: [Phoebe](https://en.wikipedia.org/wiki/Phoebe_(Titaness))
 
-A Disease Simulator written in Rust with a user interface in written in Python.
+A Disease Simulator written in Rust with a Python-based command interface.
+
+# Table of Content
+1. [Setup](#setup)
+2. [Running the Simulation](#running-the-simulation)
+3. [Examples](#examples)
+4. [Theory / Thought Process](#theory--thought-process)
 
 # Setup
 
-## Windows (Best option)
+### Windows (Best option)
 1. Run the `setup.bat` script
 2. If no errors showed up then you are done!
 
-## Linux (Not Recommended)
+### Linux (Not Recommended)
 1. Type `. ./setup.sh` in a terminal (yes the `.` is important)
 2. If no errors showed up then you are done!
 
